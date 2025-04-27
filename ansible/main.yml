@@ -1,0 +1,116 @@
+---
+- name: Configure AWS EC2 instances
+  hosts: aws
+  become: yes
+  gather_facts: yes
+
+  pre_tasks:
+    - name: Verify connectivity
+      ping:
+      register: ping_result
+      
+    - name: Display connectivity result
+      debug:
+        var: ping_result
+        verbosity: 1
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == 'Debian'
+
+    - name: Upgrade all packages
+      apt:
+        upgrade: dist
+      when: ansible_os_family == 'Debian'
+
+    - name: Install common utilities
+      package:
+        name:
+          - vim
+          - curl
+          - wget
+          - unzip
+          - git
+          - htop
+          - net-tools
+          - python3
+          - python3-pip
+        state: present
+
+    - name: Configure timezone
+      timezone:
+        name: "America/New_York"  # Change to your preferred timezone
+
+    - name: Basic security configuration - Enable automatic security updates
+      apt:
+        name:
+          - unattended-upgrades
+          - apt-listchanges
+        state: present
+      when: ansible_os_family == 'Debian'
+      
+    - name: Configure unattended upgrades
+      template:
+        src: "{{ playbook_dir }}/files/50unattended-upgrades.j2"
+        dest: /etc/apt/apt.conf.d/50unattended-upgrades
+        owner: root
+        group: root
+        mode: '0644'
+      when: ansible_os_family == 'Debian'
+
+    - name: Enable automatic updates
+      copy:
+        dest: /etc/apt/apt.conf.d/20auto-upgrades
+        content: |
+          APT::Periodic::Update-Package-Lists "1";
+          APT::Periodic::Unattended-Upgrade "1";
+          APT::Periodic::AutocleanInterval "7";
+        owner: root
+        group: root
+        mode: '0644'
+      when: ansible_os_family == 'Debian'
+
+    - name: Set up firewall - UFW installation
+      apt:
+        name: ufw
+        state: present
+      when: ansible_os_family == 'Debian'
+
+    - name: Configure UFW - deny all incoming by default
+      ufw:
+        state: enabled
+        policy: deny
+        direction: incoming
+      when: ansible_os_family == 'Debian'
+
+    - name: Configure UFW - allow SSH
+      ufw:
+        rule: allow
+        port: "22"
+        proto: tcp
+      when: ansible_os_family == 'Debian'
+
+    - name: Create a test file to verify playbook execution
+      copy:
+        dest: /home/ubuntu/ansible_was_here.txt
+        content: |
+          Ansible playbook completed successfully at {{ ansible_date_time.iso8601 }}
+          Managed by Terraform + Ansible integration
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+
+  post_tasks:
+    - name: Gather system information for verification
+      setup:
+        gather_subset:
+          - min
+      register: system_info
+      
+    - name: Display system information
+      debug:
+        msg: "Successfully configured {{ ansible_hostname }} ({{ ansible_default_ipv4.address }})"
+

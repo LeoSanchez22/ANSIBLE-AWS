@@ -1,0 +1,17 @@
+---
+all:
+  children:
+    aws:
+      hosts:
+        # This will be populated dynamically during deployment
+        # You can manually specify hosts here or use a dynamic inventory
+        aws_instance:
+          ansible_host: "{{ lookup('file', './files/host_ip.txt') | trim }}"
+          ansible_user: ubuntu
+          ansible_ssh_private_key_file: ~/.ssh/id_rsa
+          ansible_connection: ssh
+          ansible_become: yes
+      vars:
+        # Common variables for the aws group
+        environment: development
+

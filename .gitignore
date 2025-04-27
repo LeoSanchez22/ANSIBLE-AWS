@@ -1,0 +1,27 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+!example.tfvars
+.terraformrc
+terraform.rc
+
+# Ansible
+*.retry
+*.log
+ansible/files/host_ip.txt
+
+# Local .terraform directories
+**/.terraform/*
+
+# Sensitive files
+*.pem
+*.key
+secrets.yml
+
+# OS specific
+.DS_Store
+.env
+*.swp
